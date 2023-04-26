@@ -149,13 +149,13 @@ public class EmployeeDAOImpl implements EmployeeDAO {
     }
 
     @Override
-    public void deleteEmployee(int idDel) {
+    public void deleteEmployee(Employee employee) {
 
         EntityManager entityManager = EMF.emfCreate();
 
         entityManager.getTransaction().begin();
 
-        entityManager.remove(entityManager.find(Employee.class, idDel));
+        entityManager.remove(entityManager.find(Employee.class, employee.getId()));
 
         entityManager.getTransaction().commit();
 

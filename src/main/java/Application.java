@@ -22,7 +22,7 @@ public class Application {
 
         System.out.println("Введите id сотрудника, чью запись хотите удалить: ");
         int idRequestDel = scanner.useDelimiter("\n").nextInt();
-        employeeDAO.deleteEmployee(idRequestDel);
+        employeeDAO.deleteEmployee(employeeDAO.getEmployeeById(idRequestDel));
 
         System.out.println("Введите id сотрудника, чью запись хотите вывести в консоль: ");
         int idRequest = scanner.useDelimiter("\n").nextInt();
