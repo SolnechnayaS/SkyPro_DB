@@ -24,6 +24,11 @@ public class Employee {
     @Column(name = "city_id")
     protected int city_id;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "city_id", insertable=false, updatable=false)
+//    @JoinColumn(name = "city_id")
+    protected City city;
+
     public Employee() {
 
     }
@@ -77,7 +82,6 @@ public class Employee {
     }
 
     public Employee(String first_name, String last_name, String gender, int age, int city_id) {
-//        this.id = id;
         this.first_name = first_name;
         this.last_name = last_name;
         this.gender = gender;
@@ -93,7 +97,7 @@ public class Employee {
                 ", фамилия: " + last_name + '\'' +
                 ", пол: " + gender + '\'' +
                 ", возраст: " + age +
-                ", id города: " + city_id +
+                ", город: " + city_id +
                 '}';
     }
 }
