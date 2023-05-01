@@ -1,3 +1,7 @@
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.TypedQuery;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -5,95 +9,83 @@ import java.util.Scanner;
 
 
 public class EmployeeDAOImpl implements EmployeeDAO {
-    final String user = "postgres";
-    final String password = "password";
-    final String url = "jdbc:postgresql://localhost:5432/skyprodbhomework1";
 
     @Override
     public List<Employee> getAllEmployees() throws SQLException {
 
-        List<Employee> allEmployees = new ArrayList<>();
-        try (final Connection connection =
-                     DriverManager.getConnection(url, user, password);
-             PreparedStatement statement =
-                     connection.prepareStatement("SELECT * FROM employee")) {
-            System.out.println("Соединение установлено!");
+        EntityManager entityManager = EMF.emfCreate();
 
-            ResultSet resultSet = statement.executeQuery();
+        entityManager.getTransaction().begin();
+        String jpqlQuery = "SELECT s FROM Employee s";
+        TypedQuery<Employee> query = entityManager.createQuery(jpqlQuery, Employee.class);
+        List<Employee> employees = new ArrayList<>(query.getResultList());
+        entityManager.getTransaction().commit();
 
-            while (resultSet.next()) {
-                int idOfEmployee = resultSet.getInt("id");
-                String firstNameOfEmployee = resultSet.getString("first_name");
-                String lastNameOfEmployee = resultSet.getString("last_name");
-                String genderOfEmployee = resultSet.getString("gender");
-                int ageOfEmployee = resultSet.getInt("age");
-                int cityIdOfEmployee = resultSet.getInt("city_id");
+        entityManager.getEntityManagerFactory().close();
+        entityManager.close();
 
-                Employee tempEmployee = new Employee(firstNameOfEmployee, lastNameOfEmployee, genderOfEmployee, ageOfEmployee, cityIdOfEmployee);
-                allEmployees.add(tempEmployee);
-            }
+        return employees;
+    }
 
-        } catch (
-                SQLException e) {
-            System.out.println("Ошибка при подключении к базе данных!");
-            e.printStackTrace();
+    public List<Employee> getAllEmployeesFromCity(String cityName) throws SQLException {
+
+        List<Employee> employees = new ArrayList<>();
+
+        EntityManager entityManager = EMF.emfCreate();
+
+        try {
+            entityManager.getTransaction().begin();
+            String jpqlQuery1 = "SELECT s FROM City s WHERE city_name=" + "'" + cityName + "'";
+            TypedQuery<City> query1 = entityManager.createQuery(jpqlQuery1, City.class);
+            City city = query1.getSingleResult();
+            entityManager.getTransaction().commit();
+
+            entityManager.getTransaction().begin();
+            String jpqlQuery = "SELECT s FROM Employee s WHERE city_id=" + city.getCity_id();
+            TypedQuery<Employee> query = entityManager.createQuery(jpqlQuery, Employee.class);
+            employees = query.getResultList();
+            entityManager.getTransaction().commit();
+
+        } catch (NullPointerException | NoResultException e) {
+            entityManager.getTransaction().commit();
+            System.out.println("Указанный город не существует!");
         }
 
-        return allEmployees;
+        entityManager.getEntityManagerFactory().close();
+        entityManager.close();
+
+        return employees;
     }
 
     @Override
-    public void getEmployeeById(int idRequest) {
+    public Employee getEmployeeById(int idRequest) {
 
-        try (final Connection connection =
-                     DriverManager.getConnection(url, user, password);
-             PreparedStatement statement =
-                     connection.prepareStatement("SELECT * FROM employee WHERE id ="+idRequest)) {
+        EntityManager entityManager = EMF.emfCreate();
 
-            ResultSet resultSet = statement.executeQuery();
+        entityManager.getTransaction().begin();
+        Employee findEmployee = entityManager.find(Employee.class, idRequest);
+        entityManager.getTransaction().commit();
 
-            while (resultSet.next()) {
-                int idOfEmployee = resultSet.getInt("id");
-                System.out.println("ID сотрудника: " + idOfEmployee);
+        entityManager.getEntityManagerFactory().close();
+        entityManager.close();
 
-                String firstNameOfEmployee = resultSet.getString("first_name");
-                String lastNameOfEmployee = resultSet.getString("last_name");
-                String genderOfEmployee = resultSet.getString("gender");
-                int ageOfEmployee = resultSet.getInt("age");
-                int cityIdOfEmployee = resultSet.getInt("city_id");
-
-                System.out.println("Имя: " + firstNameOfEmployee);
-                System.out.println("Фамилия: " + lastNameOfEmployee);
-                System.out.println("Пол: " + genderOfEmployee);
-                System.out.println("Возраст: " + ageOfEmployee);
-                System.out.println("Город (id): " + cityIdOfEmployee + "\n");
-
-            }
-
-        } catch (
-                SQLException e) {
-            System.out.println("Ошибка при подключении к базе данных!");
-            e.printStackTrace();
-        }
-
+        return findEmployee;
     }
 
     @Override
-    public void createEmployee() {
+    public Employee createEmployeeWithoutCity() {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Введите ИМЯ нового сотрудника: ");
         String firstNameOfEmployee = scanner.useDelimiter("\n").next();
         System.out.println("Введите ФАМИЛИЮ нового сотрудника: ");
         String lastNameOfEmployee = scanner.useDelimiter("\n").next();
         System.out.println("Введите ПОЛ нового сотрудника: " +
-                "1 - мужской\t" +
-                "2 - женский");
+                "0 - мужской (значение по умолчанию)\t" +
+                "1 - женский");
         String genderOfEmployee = "male";
         int numGenderOfEmployee = scanner.useDelimiter("\n").nextInt();
         switch (numGenderOfEmployee) {
             case 1:
-                genderOfEmployee = "male";
-            case 2:
                 genderOfEmployee = "female";
             default:
                 break;
@@ -101,109 +93,141 @@ public class EmployeeDAOImpl implements EmployeeDAO {
 
         System.out.println("Введите ВОЗРАСТ нового сотрудника: ");
         int ageOfEmployee = scanner.useDelimiter("\n").nextInt();
-        System.out.println("Введите id ГОРОДА нового сотрудника: ");
-        int cityIdOfEmployee = scanner.useDelimiter("\n").nextInt();
 
-        try (final Connection connection =
-                     DriverManager.getConnection(url, user, password);
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO employee(first_name, last_name, gender, age, city_id) VALUES ('" + firstNameOfEmployee + "', '" + lastNameOfEmployee + "', '" + genderOfEmployee + "', " + ageOfEmployee + ", " + cityIdOfEmployee + ")")) {
-            statement.executeUpdate();
-            System.out.println("Сотрудник добавлен");
-
-        } catch (
-                SQLException e) {
-            System.out.println("Ошибка при подключении к базе данных!");
-            e.printStackTrace();
-        }
-
+        return new Employee(firstNameOfEmployee, lastNameOfEmployee, genderOfEmployee, ageOfEmployee, 0);
     }
 
     @Override
-    public void updateEmployee(int idRequest) {
+    public Employee createEmployee() throws SQLException {
         Scanner scanner = new Scanner(System.in);
-        try (final Connection connection =
-                     DriverManager.getConnection(url, user, password);
-             PreparedStatement statement =
-                     connection.prepareStatement("SELECT * FROM employee WHERE id =" + idRequest)) {
-            System.out.println("Соединение установлено!");
+        Employee employee = createEmployeeWithoutCity();
 
-            ResultSet resultSet = statement.executeQuery();
+        System.out.println("Введите ГОРОД нового сотрудника: ");
+        String cityNewEmployeeName = scanner.useDelimiter("\n").next();
 
+        CityDAO cityDAO = new CityDAOImpl();
+        City cityNewEmployee = cityDAO.findCityByName(cityNewEmployeeName);
+
+        EntityManager entityManager = EMF.emfCreate();
+        entityManager.getTransaction().begin();
+        employee.setCity_id(cityNewEmployee.getCity_id());
+        entityManager.persist(employee);
+        entityManager.flush();
+        entityManager.clear();
+        entityManager.getTransaction().commit();
+
+        System.out.println("Создан новый сотрудник: ");
+        System.out.println(employee);
+
+        entityManager.getEntityManagerFactory().close();
+        entityManager.close();
+
+        return employee;
+    }
+
+    @Override
+    public void updateEmployee(Employee employee) {
+
+        EntityManager entityManager = EMF.emfCreate();
+
+        try {
+            entityManager.getTransaction().begin();
+            entityManager.find(Employee.class, employee.getId());
+            entityManager.getTransaction().commit();
+
+            Scanner scanner = new Scanner(System.in);
             System.out.println("Выберите, какие данные будем изменять: " +
                     "1 - Имя; " +
                     "2 - Фамилия; " +
                     "3 - Возраст; " +
-                    "4 - id Города проживания;");
+                    "4 - Пол; " +
+                    "5 - Город проживания;");
             int numChange = scanner.useDelimiter("\n").nextInt();
 
             while (numChange != 0) {
                 switch (numChange) {
                     case 1:
                         System.out.println("Введите новое ИМЯ: ");
-                        String firstNameOfEmployee = scanner.useDelimiter("\n").next();
-                        PreparedStatement statement1 =
-                                connection.prepareStatement("UPDATE employee SET first_name ='" + firstNameOfEmployee + "'  WHERE id =" + idRequest);
-                        statement1.executeUpdate();
-                        numChange = 5;
+                        employee.setFirst_name(scanner.useDelimiter("\n").next());
+                        numChange = 6;
                         break;
                     case 2:
                         System.out.println("Введите новую ФАМИЛИЮ: ");
-                        String lastNameOfEmployee = scanner.useDelimiter("\n").next();
-                        PreparedStatement statement2 =
-                                connection.prepareStatement("UPDATE employee SET last_name ='" + lastNameOfEmployee + "' WHERE id =" + idRequest);
-                        statement2.executeUpdate();
-                        numChange = 5;
+                        employee.setLast_name(scanner.useDelimiter("\n").next());
+                        numChange = 6;
                         break;
                     case 3:
                         System.out.println("Уточните ВОЗРАСТ: ");
-                        int ageOfEmployee = scanner.useDelimiter("\n").nextInt();
-                        PreparedStatement statement3 =
-                                connection.prepareStatement("UPDATE employee SET age =" + ageOfEmployee + " WHERE id =" + idRequest);
-                        statement3.executeUpdate();
-                        numChange = 5;
+                        employee.setAge(scanner.useDelimiter("\n").nextInt());
+                        numChange = 6;
                         break;
                     case 4:
-                        System.out.println("Введите новый ID города проживания: ");
-                        int cityIdOfEmployee = scanner.useDelimiter("\n").nextInt();
-                        PreparedStatement statement4 =
-                                connection.prepareStatement("UPDATE employee SET city_id =" + cityIdOfEmployee + " WHERE id =" + idRequest);
-                        statement4.executeUpdate();
-                        numChange = 5;
+                        System.out.println("Уточните ПОЛ: " +
+                                "0 - мужской (значение по умолчанию)\t" +
+                                "1 - женский");
+                        String genderOfEmployee = "male";
+                        int numGenderOfEmployee = scanner.useDelimiter("\n").nextInt();
+                        switch (numGenderOfEmployee) {
+                            case 1:
+                                genderOfEmployee = "female";
+                            default:
+                                break;
+                        }
+                        employee.setGender(genderOfEmployee);
+                        numChange = 6;
+                        break;
+                    case 5:
+                        System.out.println("Введите новый город проживания: ");
+                        String newCityName = scanner.useDelimiter("\n").next();
+
+                        CityDAO cityDAO = new CityDAOImpl();
+                        employee.setCity_id(cityDAO.findCityByName(newCityName).getCity_id());
+                        numChange = 6;
                         break;
                     default:
                         System.out.println("Выберите, какие данные будем изменять: " +
-                                "1 - Имя;" +
-                                "2 - Фамилия;" +
-                                "3 - Возраст;" +
-                                "4 - id Города проживания;" +
+                                "1 - Имя; " +
+                                "2 - Фамилия; " +
+                                "3 - Возраст; " +
+                                "4 - Пол; " +
+                                "5 - Город проживания; " +
                                 "0 - Завершить редактирование.");
                         numChange = scanner.useDelimiter("\n").nextInt();
                 }
             }
 
-        } catch (
-                SQLException e) {
-            System.out.println("Ошибка при подключении к базе данных!");
-            e.printStackTrace();
-        }
 
+            entityManager.getTransaction().begin();
+            entityManager.merge(employee);
+            entityManager.getTransaction().commit();
+
+            entityManager.getEntityManagerFactory().close();
+            entityManager.close();
+
+            System.out.println("Данные сотрудника обновлены успешно!");
+        } catch (RuntimeException e) {
+            entityManager.getTransaction().commit();
+            System.out.println("Сотрудник не найден!");
+        }
     }
 
     @Override
-    public void deleteEmployee(int idRequest) {
+    public void deleteEmployee(Employee employee) {
+        EntityManager entityManager = EMF.emfCreate();
 
-        try (final Connection connection =
-                     DriverManager.getConnection(url, user, password);
-             PreparedStatement statement =
-                     connection.prepareStatement("DELETE FROM employee WHERE id="+idRequest)) {
-            System.out.println("Сотрудник удален");
-            statement.executeUpdate();
+        entityManager.getTransaction().begin();
+        entityManager.find(City.class, employee.getCity_id()).getEmployees().remove(entityManager.find(Employee.class, employee.getId()));
+//        entityManager.remove(entityManager.find(Employee.class, employee.getId()));
+        entityManager.flush();
+        entityManager.clear();
+        entityManager.getTransaction().commit();
 
-        } catch (
-                SQLException e) {
-            System.out.println("Ошибка при подключении к базе данных!");
-            e.printStackTrace();
-        }
+
+        entityManager.getEntityManagerFactory().close();
+        entityManager.close();
+
+        System.out.println("Сотрудник удален из базы!");
 
     }
+
 }

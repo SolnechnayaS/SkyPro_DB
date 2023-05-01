@@ -3,8 +3,10 @@ import java.util.List;
 public interface EmployeeDAO {
 
     List <Employee> getAllEmployees() throws SQLException;
-    void getEmployeeById(int id);
-    void createEmployee();
-    void updateEmployee(int idRequest);
-    void deleteEmployee(int id);
+    List<Employee> getAllEmployeesFromCity (String cityName) throws SQLException ;
+    Employee getEmployeeById(int id);
+    Employee createEmployee() throws SQLException;
+    Employee createEmployeeWithoutCity();
+    void updateEmployee(Employee employee);
+    void deleteEmployee(Employee employee);
 }

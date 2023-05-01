@@ -1,11 +1,37 @@
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "employee")
 public class Employee {
 
-    int id;
-    String first_name;
-    String last_name;
-    String gender;
-    int age;
-    int city_id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    protected int id;
+
+    @Column(name = "first_name", length = 50, nullable = false)
+    protected String first_name;
+
+    @Column(name = "last_name", length = 50, nullable = false)
+    protected String last_name;
+
+    @Column(name = "gender", length = 6, nullable = false)
+    protected String gender;
+
+    @Column(name = "age", nullable = false)
+    protected int age;
+
+    @Column(name = "city_id")
+    protected int city_id;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "city_id", insertable=false, updatable=false)
+//    @JoinColumn(name = "city_id")
+    protected City city;
+
+    public Employee() {
+
+    }
 
     public int getId() {
         return id;
@@ -56,7 +82,6 @@ public class Employee {
     }
 
     public Employee(String first_name, String last_name, String gender, int age, int city_id) {
-//        this.id = id;
         this.first_name = first_name;
         this.last_name = last_name;
         this.gender = gender;
@@ -66,13 +91,13 @@ public class Employee {
 
     @Override
     public String toString() {
-        return "Employee{" +
+        return "{" +
                 "id=" + id +
-                ", first_name='" + first_name + '\'' +
-                ", last_name='" + last_name + '\'' +
-                ", gender='" + gender + '\'' +
-                ", age=" + age +
-                ", city_id=" + city_id +
+                ", имя: " + first_name + '\'' +
+                ", фамилия: " + last_name + '\'' +
+                ", пол: " + gender + '\'' +
+                ", возраст: " + age +
+                ", город: " + city_id +
                 '}';
     }
 }
